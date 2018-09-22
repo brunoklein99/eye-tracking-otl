@@ -10,7 +10,7 @@ prepared_dir = 'data/mpii_face_gaze_prepared'
 
 if __name__ == '__main__':
     with open(join(prepared_dir, 'labels.csv'), 'w') as fd_labels:
-        fd_labels.write('imagename;maskname;x;y\n')
+        fd_labels.write('imagename,maskname,x,y\n')
         for participant_dir_name in listdir(original_dir):
             participant_dir_fullname = join(original_dir, participant_dir_name)
             if not isdir(participant_dir_fullname):
@@ -46,6 +46,6 @@ if __name__ == '__main__':
 
                     cv2.imwrite(image_new_name_mask, img)
 
-                    fd_labels.write('{};{};{};{};\n'.format(image_new_name, image_new_name_mask, p_x, p_y))
+                    fd_labels.write('{},{},{},{}\n'.format(image_new_name, image_new_name_mask, p_x, p_y))
 
                     print('done {}'.format(image_new_name))
