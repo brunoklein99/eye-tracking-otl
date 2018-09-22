@@ -5,14 +5,11 @@ from os import listdir
 from os.path import join, isdir, split, splitext
 import scipy.io
 
-original_dir = 'data/mpii_face_gaze_original'
-prepared_dir = 'data/mpii_face_gaze_prepared'
-
 if __name__ == '__main__':
-    with open(join(prepared_dir, 'labels.csv'), 'w') as fd_labels:
+    with open(join(settings.PREPARED_DIR, 'labels.csv'), 'w') as fd_labels:
         fd_labels.write('imagename,maskname,x,y\n')
-        for participant_dir_name in listdir(original_dir):
-            participant_dir_fullname = join(original_dir, participant_dir_name)
+        for participant_dir_name in listdir(settings.ORIGINAL_DIR):
+            participant_dir_fullname = join(settings.ORIGINAL_DIR, participant_dir_name)
             if not isdir(participant_dir_fullname):
                 continue
             screen_size = scipy.io.loadmat(join(participant_dir_fullname, 'Calibration/screenSize.mat'))
@@ -34,8 +31,8 @@ if __name__ == '__main__':
                     img = cv2.imread(image_fullname)
                     img = cv2.resize(img, dsize=(settings.IMAGE_SIZE, settings.IMAGE_SIZE))
 
-                    image_new_name = join(prepared_dir, '{}_{}_{}'.format(participant_dir_name, day_name, image_filename))
-                    image_new_name_mask = join(prepared_dir, '{}_{}_{}_mask{}'.format(participant_dir_name, day_name, image_name, extension))
+                    image_new_name = join(settings.PREPARED_DIR, '{}_{}_{}'.format(participant_dir_name, day_name, image_filename))
+                    image_new_name_mask = join(settings.PREPARED_DIR, '{}_{}_{}_mask{}'.format(participant_dir_name, day_name, image_name, extension))
 
                     cv2.imwrite(image_new_name, img)
 
