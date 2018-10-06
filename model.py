@@ -26,10 +26,10 @@ class Net(nn.Module):
         self.linear2 = nn.Linear(in_features=4096, out_features=4096)
 
         self.linear_mean_x = nn.Linear(in_features=4096, out_features=1)
-        self.linear_stddev_x = nn.Linear(in_features=4096, out_features=1)
+        self.linear_var_x = nn.Linear(in_features=4096, out_features=1)
 
         self.linear_mean_y = nn.Linear(in_features=4096, out_features=1)
-        self.linear_stddev_y = nn.Linear(in_features=4096, out_features=1)
+        self.linear_var_y = nn.Linear(in_features=4096, out_features=1)
 
     def forward(self, x):
         x = x.permute(0, 3, 2, 1)
@@ -57,9 +57,9 @@ class Net(nn.Module):
         out = F.relu(self.linear2(out))
 
         mean_x = F.softplus(self.linear_mean_x(out))
-        stddev_x = F.softplus(self.linear_stddev_x(out))
+        var_x = F.softplus(self.linear_var_x(out))
 
         mean_y = F.softplus(self.linear_mean_y(out))
-        stddev_y = F.softplus(self.linear_stddev_y(out))
+        var_y = F.softplus(self.linear_var_y(out))
 
-        return mean_x, stddev_x, mean_y, stddev_y
+        return mean_x, var_x, mean_y, var_y
