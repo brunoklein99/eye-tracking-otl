@@ -1,3 +1,5 @@
+from os import listdir
+
 import numpy as np
 import torch
 from torch.optim import SGD
@@ -34,14 +36,10 @@ def evaluate(model, data_frame, params, device):
     return np.mean(losses)
 
 
-def train(train_frame, valid_frame, params):
-    device = torch.device('cuda')
-
+def train(model, train_frame, valid_frame, params, device):
     dataset = get_dataset(train_frame)
 
     loader = DataLoader(dataset=dataset, batch_size=params['batch_size'])
-
-    model = NetVgg().to(device)
 
     optimizer = SGD(model.parameters(), lr=params['learning_rate'], momentum=0.9)
 
@@ -65,16 +63,39 @@ def train(train_frame, valid_frame, params):
             optimizer.step()
 
             if i % 50 == 0:
-                print('train epoch {}/{} batch {}/{} loss {}'.format(epoch + 1, epochs, i + 1, len(loader), float(loss_batch)))
+                print('train epoch {}/{} batch {}/{} loss {}'.format(epoch + 1, epochs, i + 1, len(loader),
+                                                                     float(loss_batch)))
         loss_train = np.mean(losses)
         loss_valid = evaluate(model, valid_frame, params, device)
         print('epoch {} finished with train loss {} and valid loss {}'.format(epoch + 1, loss_train, loss_valid))
 
+    return model
+
 
 if __name__ == '__main__':
     df_train, df_valid, df_test = load_mpii_dataframes()
-    train(train_frame=df_train, valid_frame=df_valid, params={
+
+    params = {
         'learning_rate': 0.001,
-        'epochs': 100,
+        'epochs': 4,
         'batch_size': 8
-    })
+    }
+
+    device = torch.device('cuda')
+
+    weights = listdir('weights')
+    if len(weights) > 1:
+        weights_filename, *_ = sorted(weights, reverse=True)
+        with open('weights/{}'.format(weights_filename), 'rb') as f:
+            model = torch.load(f)
+    else:
+        model = NetVgg().to(device)
+
+    model = train(model, train_frame=df_train, valid_frame=df_valid, params=params, device=device)
+
+    test_loss = evaluate(model, df_test, params, device)
+
+    print('test loss', test_loss)
+
+    with open('weights/weights-{:2f}'.format(test_loss), 'wb') as f:
+        torch.save(model, f)
