@@ -9,7 +9,7 @@ class ResizeDataset(data.Dataset):
 
     def __getitem__(self, i):
         x, m, x_axis, y_axis = self.dataset[i]
-        x = cv2.resize(x, dsize=(255, 255))
+        x = cv2.resize(x, dsize=(448, 448))
         return x, m, x_axis, y_axis
 
     def __len__(self):

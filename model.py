@@ -1,5 +1,8 @@
-import torch.nn as nn
+import math
+
+import torch
 import torch.nn.functional as F
+import torch.nn as nn
 
 
 class Net(nn.Module):
@@ -22,18 +25,28 @@ class Net(nn.Module):
         self.conv2_spatial = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=1)
         self.conv3_spatial = nn.Conv2d(in_channels=256, out_channels=1, kernel_size=1)
 
-        self.linear1 = nn.Linear(in_features=36864, out_features=4096)
+        self.linear1 = nn.Linear(in_features=12 * 12 * 256, out_features=4096)
         self.linear2 = nn.Linear(in_features=4096, out_features=4096)
+        self.linear3 = nn.Linear(in_features=4096, out_features=2)
 
-        self.linear_mean_x = nn.Linear(in_features=4096, out_features=1)
-        self.linear_var_x = nn.Linear(in_features=4096, out_features=1)
+        self._initialize_weights()
 
-        self.linear_mean_y = nn.Linear(in_features=4096, out_features=1)
-        self.linear_var_y = nn.Linear(in_features=4096, out_features=1)
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                m.weight.data.normal_(0, 0.01)
+                m.bias.data.zero_()
 
     def forward(self, x):
         x = x.permute(0, 3, 2, 1)
-
         u = F.relu(self.conv1(x))
         u = self.maxp1(u)
 
@@ -51,15 +64,11 @@ class Net(nn.Module):
 
         v = u * w
 
-        features = v.view(x.size(0), -1)
+        f = v.view(x.size(0), -1)
 
-        out = F.relu(self.linear1(features))
+        out = F.relu(self.linear1(f))
         out = F.relu(self.linear2(out))
-
-        mean_x = F.softplus(self.linear_mean_x(out))
-        var_x = F.softplus(self.linear_var_x(out))
-
-        mean_y = F.softplus(self.linear_mean_y(out))
-        var_y = F.softplus(self.linear_var_y(out))
-
-        return mean_x, var_x, mean_y, var_y
+        out = torch.sigmoid(self.linear3(out))
+        x_axis = out[:, 0].view(-1, 1)
+        y_axis = out[:, 1].view(-1, 1)
+        return x_axis, y_axis

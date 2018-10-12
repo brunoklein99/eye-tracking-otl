@@ -1,14 +1,12 @@
 import numpy as np
 import torch
-from torch.optim import Adam, SGD
+from torch.optim import SGD
 from torch.utils.data import DataLoader
 
 import settings
-import torch.nn.functional as F
 from data_load import load_mpii_dataframes
 from device_dataset import DeviceDataset
 from model import Net
-from model_vgg import NetVgg
 from mpii_dataset import MpiiDataset
 from mpii_normalizing_dataset import MpiiNormalizingDataset
 from resize_dataset import ResizeDataset
@@ -19,7 +17,7 @@ def train(data_frame, params):
     device = torch.device('cuda')
 
     dataset = MpiiDataset(data_frame)
-    dataset = ResizeDataset(dataset)
+    # dataset = ResizeDataset(dataset)
     dataset = MpiiNormalizingDataset(dataset,
                                      mean=(0.33320256,
                                            0.35879958,
@@ -32,7 +30,7 @@ def train(data_frame, params):
 
     loader = DataLoader(dataset=dataset, batch_size=settings.BATCH_SIZE)
 
-    model = NetVgg().to(device)
+    model = Net().to(device)
 
     optimizer = SGD(model.parameters(), lr=params['learning_rate'], momentum=0.9)
 
@@ -42,8 +40,6 @@ def train(data_frame, params):
         for i, (x, m, x_true, y_true) in enumerate(loader):
             x_pred, y_pred = model(x)
 
-            # loss = F.mse_loss(x_pred, x_true) + F.mse_loss(y_pred, y_true)
-            # loss = torch.mean(loss)
             loss_x = torch.mean(torch.abs(x_true - x_pred))
             loss_y = torch.mean(torch.abs(y_true - y_pred))
             loss = loss_x + loss_y
