@@ -72,6 +72,16 @@ def train(model, train_frame, valid_frame, params, device):
     return model
 
 
+def create_or_load_model():
+    weights = listdir('weights')
+    if len(weights) > 1:
+        weights_filename, *_ = sorted(weights, reverse=True)
+        with open('weights/{}'.format(weights_filename), 'rb') as f:
+            return torch.load(f)
+    else:
+        return NetVgg()
+
+
 if __name__ == '__main__':
     df_train, df_valid, df_test = load_mpii_dataframes()
 
@@ -83,13 +93,7 @@ if __name__ == '__main__':
 
     device = torch.device('cuda')
 
-    weights = listdir('weights')
-    if len(weights) > 1:
-        weights_filename, *_ = sorted(weights, reverse=True)
-        with open('weights/{}'.format(weights_filename), 'rb') as f:
-            model = torch.load(f)
-    else:
-        model = NetVgg().to(device)
+    model = create_or_load_model().to(device)
 
     model = train(model, train_frame=df_train, valid_frame=df_valid, params=params, device=device)
 
