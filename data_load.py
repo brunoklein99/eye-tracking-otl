@@ -1,5 +1,11 @@
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+
+from mpii_dataset import MpiiDataset
+from mpii_normalizing_dataset import MpiiNormalizingDataset
+from resize_dataset import ResizeDataset
+from tensor_dataset import TensorDataset
 
 
 def load_mpii_dataframes():
@@ -8,3 +14,17 @@ def load_mpii_dataframes():
     df_train_valid, df_test = train_test_split(df, random_state=1, test_size=0.15)
     df_train, df_valid = train_test_split(df_train_valid, random_state=1, test_size=0.1765)
     return df_train, df_valid, df_test
+
+
+def get_dataset(data_frame):
+    dataset = MpiiDataset(data_frame)
+    dataset = ResizeDataset(dataset)
+    dataset = MpiiNormalizingDataset(dataset,
+                                     mean=(0.33320256,
+                                           0.35879958,
+                                           0.45563497),
+                                     stddev=(np.sqrt(0.05785664),
+                                             np.sqrt(0.06049888),
+                                             np.sqrt(0.07370879)))
+    dataset = TensorDataset(dataset)
+    return dataset

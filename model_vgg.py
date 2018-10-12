@@ -1,7 +1,6 @@
 import math
 
 import torch.nn as nn
-import torch.nn.functional as F
 from torchvision.models.vgg import make_layers, cfg
 
 
