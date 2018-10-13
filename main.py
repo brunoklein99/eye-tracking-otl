@@ -5,7 +5,7 @@ import torch
 from torch.optim import SGD
 from torch.utils.data import DataLoader
 
-from data_load import load_mpii_dataframes, get_dataset, load_custom_dataframes
+from data_load import get_mpii_datasets
 from model_vgg import NetVgg
 
 
@@ -78,7 +78,7 @@ def create_or_load_model():
 
 
 if __name__ == '__main__':
-    df_train, df_valid, df_test = load_mpii_dataframes()
+    train_dataset, valid_dataset, test_dataset = get_mpii_datasets()
 
     params = {
         'learning_rate': 0.001,
@@ -90,12 +90,9 @@ if __name__ == '__main__':
 
     model = create_or_load_model().to(device)
 
-    train_dataset = get_dataset(df_train)
-    valid_dataset = get_dataset(df_valid)
-
     model = train(model, train_dataset, valid_dataset, params=params, device=device)
 
-    test_loss = evaluate(model, df_test, params, device)
+    test_loss = evaluate(model, test_dataset, params, device)
 
     print('test loss', test_loss)
 

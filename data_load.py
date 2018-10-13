@@ -29,6 +29,9 @@ def decorate_dataset(dataset):
     return dataset
 
 
-def get_dataset(data_frame):
-    dataset = MpiiDataset(data_frame)
-    return decorate_dataset(dataset)
+def get_mpii_datasets():
+    df_train, df_valid, df_test = load_mpii_dataframes()
+    train_dataset = decorate_dataset(MpiiDataset(df_train))
+    valid_dataset = decorate_dataset(MpiiDataset(df_valid))
+    test_dataset = decorate_dataset(MpiiDataset(df_test))
+    return train_dataset, valid_dataset, test_dataset
