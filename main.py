@@ -38,10 +38,10 @@ def evaluate(model, dataset, params):
     return np.mean(losses)
 
 
-def train(model, train_dataset, valid_dataset, params):
+def train(model, parameters, train_dataset, valid_dataset, params):
     loader = DataLoader(dataset=train_dataset, batch_size=params['batch_size'])
 
-    optimizer = SGD(model.parameters(), lr=params['learning_rate'], momentum=0.9)
+    optimizer = SGD(parameters, lr=params['learning_rate'], momentum=0.9)
 
     epochs = params['epochs']
     for epoch in range(epochs):
@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
     model = create_or_load_model().to(device)
 
-    train(model, train_dataset, valid_dataset, params=params)
+    train(model, model.parameters(), train_dataset, valid_dataset, params=params)
 
     test_loss = evaluate(model, test_dataset, params)
 
