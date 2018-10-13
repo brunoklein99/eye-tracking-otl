@@ -16,8 +16,7 @@ def load_mpii_dataframes():
     return df_train, df_valid, df_test
 
 
-def get_dataset(data_frame):
-    dataset = MpiiDataset(data_frame)
+def decorate_dataset(dataset):
     dataset = ResizeDataset(dataset)
     dataset = MpiiNormalizingDataset(dataset,
                                      mean=(0.33320256,
@@ -28,3 +27,8 @@ def get_dataset(data_frame):
                                              np.sqrt(0.07370879)))
     dataset = TensorDataset(dataset)
     return dataset
+
+
+def get_dataset(data_frame):
+    dataset = MpiiDataset(data_frame)
+    return decorate_dataset(dataset)
