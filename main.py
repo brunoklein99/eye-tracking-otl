@@ -58,8 +58,6 @@ def train(model, train_dataset, valid_dataset, params):
         loss_valid = evaluate(model, valid_dataset, params)
         print('epoch {} finished with train loss {} and valid loss {}'.format(epoch + 1, loss_train, loss_valid))
 
-    return model
-
 
 def create_or_load_model():
     weights = listdir('weights')
@@ -81,7 +79,7 @@ if __name__ == '__main__':
 
     model = create_or_load_model().to(device)
 
-    model = train(model, train_dataset, valid_dataset, params=params)
+    train(model, train_dataset, valid_dataset, params=params)
 
     test_loss = evaluate(model, test_dataset, params)
 
