@@ -74,8 +74,7 @@ def create_or_load_model():
         weights_filename, *_ = sorted(weights, reverse=True)
         with open('weights/{}'.format(weights_filename), 'rb') as f:
             return torch.load(f)
-    else:
-        return NetVgg()
+    return NetVgg()
 
 
 if __name__ == '__main__':
