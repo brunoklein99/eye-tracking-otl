@@ -1,83 +1,61 @@
+from collections import deque
+
 import cv2
 import numpy as np
-import settings
 from os import listdir
-from os.path import join, isdir, split, splitext
-import scipy.io
+from os.path import join, isdir, splitext
 
-threshold = 10_000
+from scipy.io import loadmat
+
+from face_extractor import extract_face
 
 
-def get_face_coordinates(image):
-    height, width, _ = image.shape
-    image = np.sum(image, axis=2)
-    w_sum = np.sum(image, axis=0)
-    h_sum = np.sum(image, axis=1)
-    w_low = w_high = h_low = h_high = 0
-    for i in range(len(w_sum)):
-        if w_sum[i] > threshold:
-            w_low = i
-            break
-    for i in reversed(range(len(w_sum))):
-        if w_sum[i] > threshold:
-            w_high = i
-            break
-    for i in range(len(h_sum)):
-        if h_sum[i] > threshold:
-            h_low = i
-            break
-    for i in reversed(range(len(h_sum))):
-        if h_sum[i] > threshold:
-            h_high = i
-            break
-    return w_low, w_high, h_low, h_high
+def get_participant_screen_size(participant_dir_fullname):
+    screen_size_file = join(participant_dir_fullname, 'Calibration', 'screenSize.mat')
+    screen_size = loadmat(screen_size_file)
+    screen_w = int(np.squeeze(screen_size['width_pixel']))
+    screen_h = int(np.squeeze(screen_size['height_pixel']))
+    return screen_w, screen_h
 
 
 if __name__ == '__main__':
-    with open(join(settings.PREPARED_DIR, 'labels.csv'), 'w') as fd_labels:
-        fd_labels.write('imagename,maskname,x,y\n')
-        for participant_dir_name in listdir(settings.ORIGINAL_DIR):
-            participant_dir_fullname = join(settings.ORIGINAL_DIR, participant_dir_name)
+    mpii_dir = 'data/mpii'
+    mpii_dir_prepared = mpii_dir + '_prepared'
+    mpii_metadata_fullname = join(mpii_dir_prepared, 'metadata.csv')
+    with open(mpii_metadata_fullname, 'w') as f:
+        f.write('imagename,x,y\n')
+        for participant_dir in listdir(mpii_dir):
+            participant_dir_fullname = join(mpii_dir, participant_dir)
             if not isdir(participant_dir_fullname):
                 continue
-            screen_size = scipy.io.loadmat(join(participant_dir_fullname, 'Calibration/screenSize.mat'))
-            labels_filename = join(participant_dir_fullname, '{}.txt'.format(participant_dir_name))
-            with open(labels_filename) as f:
-                for line in f:
-                    tokens = line.split(' ')
+            screen_w, screen_h = get_participant_screen_size(participant_dir_fullname)
+            labels_fullname = join(participant_dir_fullname, '{}.txt'.format(participant_dir))
+            with open(labels_fullname) as flabel:
+                for line in flabel:
+                    # noinspection PyRedeclaration
+                    image_filename, *tail = deque(line.split())
+                    image_fullname = join(participant_dir_fullname, image_filename)
+                    target_x, *tail = tail
+                    target_y, *tail = tail
+                    target_x = int(target_x)
+                    target_y = int(target_y)
+                    target_x /= screen_w
+                    target_y /= screen_h
 
-                    image_rel_path = tokens[0]
-                    image_fullname = join(participant_dir_fullname, image_rel_path)
-                    day_name, image_filename = split(image_rel_path)
-                    image_name, extension = splitext(image_filename)
+                    # noinspection PyRedeclaration
+                    day, imagename = image_filename.split('/')
+                    imagename, _ = splitext(imagename)
 
-                    image_new_name = join(settings.PREPARED_DIR,
-                                          '{}_{}_{}'.format(participant_dir_name, day_name, image_filename))
+                    # noinspection PyRedeclaration
+                    img = cv2.imread(image_fullname)
+                    img = extract_face(img)
+                    img = cv2.resize(img, dsize=(448, 448))
 
-                    print('started {}'.format(image_new_name))
+                    imagename_new = '{}_{}_{}.jpg'.format(participant_dir, day, imagename)
+                    imagename_new = join(mpii_dir_prepared, imagename_new)
 
-                    p_x = int(tokens[1])
-                    p_x /= screen_size['width_pixel'][0][0]
-                    p_y = int(tokens[2])
-                    p_y /= screen_size['height_pixel'][0][0]
+                    cv2.imwrite(imagename_new, img)
 
-                    img_original = cv2.imread(image_fullname)
-                    w_low, w_high, h_low, h_high = get_face_coordinates(img_original)
-                    img = img_original[h_low:h_high, w_low:w_high]
-                    img = cv2.resize(img, dsize=(settings.IMAGE_SIZE, settings.IMAGE_SIZE))
+                    f.write('{},{},{}\n'.format(imagename_new, target_x, target_y))
 
-                    image_new_name_mask = join(settings.PREPARED_DIR,
-                                               '{}_{}_{}_mask{}'.format(participant_dir_name, day_name, image_name,
-                                                                        extension))
-
-                    cv2.imwrite(image_new_name, img)
-
-                    img = np.sum(img_original, axis=2, keepdims=True)
-                    img[img > 0] = 255
-                    img = img.astype(dtype=np.uint8)
-                    img = cv2.resize(img, dsize=(20, 20))
-                    cv2.imwrite(image_new_name_mask, img)
-
-                    fd_labels.write('{},{},{},{}\n'.format(image_new_name, image_new_name_mask, p_x, p_y))
-
-                    print('done {}'.format(image_new_name))
+                    print('finished participant {} day {} img {}'.format(participant_dir, day, imagename))
