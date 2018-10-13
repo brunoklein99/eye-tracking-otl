@@ -5,7 +5,7 @@ import torch
 from torch.optim import SGD
 from torch.utils.data import DataLoader
 
-from data_load import load_mpii_dataframes, get_dataset
+from data_load import load_mpii_dataframes, get_dataset, load_custom_dataframes
 from model_vgg import NetVgg
 
 
@@ -15,9 +15,7 @@ def loss_fn(x_true, y_true, x_pred, y_pred):
     return loss_x + loss_y
 
 
-def evaluate(model, data_frame, params, device):
-    dataset = get_dataset(data_frame)
-
+def evaluate(model, dataset, params, device):
     loader = DataLoader(dataset=dataset, batch_size=params['batch_size'])
 
     losses = []
@@ -36,10 +34,8 @@ def evaluate(model, data_frame, params, device):
     return np.mean(losses)
 
 
-def train(model, train_frame, valid_frame, params, device):
-    dataset = get_dataset(train_frame)
-
-    loader = DataLoader(dataset=dataset, batch_size=params['batch_size'])
+def train(model, train_dataset, valid_dataset, params, device):
+    loader = DataLoader(dataset=train_dataset, batch_size=params['batch_size'])
 
     optimizer = SGD(model.parameters(), lr=params['learning_rate'], momentum=0.9)
 
@@ -66,7 +62,7 @@ def train(model, train_frame, valid_frame, params, device):
                 print('train epoch {}/{} batch {}/{} loss {}'.format(epoch + 1, epochs, i + 1, len(loader),
                                                                      float(loss_batch)))
         loss_train = np.mean(losses)
-        loss_valid = evaluate(model, valid_frame, params, device)
+        loss_valid = evaluate(model, valid_dataset, params, device)
         print('epoch {} finished with train loss {} and valid loss {}'.format(epoch + 1, loss_train, loss_valid))
 
     return model
@@ -95,7 +91,10 @@ if __name__ == '__main__':
 
     model = create_or_load_model().to(device)
 
-    model = train(model, train_frame=df_train, valid_frame=df_valid, params=params, device=device)
+    train_dataset = get_dataset(df_train)
+    valid_dataset = get_dataset(df_valid)
+
+    model = train(model, train_dataset, valid_dataset, params=params, device=device)
 
     test_loss = evaluate(model, df_test, params, device)
 
