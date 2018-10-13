@@ -17,13 +17,9 @@ def loss_fn(x_true, y_true, x_pred, y_pred):
     return loss_x + loss_y
 
 
-def evaluate(model, dataset, params):
-    loader = DataLoader(dataset=dataset, batch_size=params['batch_size'])
-
-    losses = []
-    for i, (x, m, x_true, y_true) in enumerate(loader):
+def forward_backward_gen(model, loader):
+    for x, _, x_true, y_true in loader:
         x = x.to(device)
-        # m = m.to(device)
         x_true = x_true.to(device)
         y_true = y_true.to(device)
 
@@ -31,8 +27,14 @@ def evaluate(model, dataset, params):
 
         loss_batch = loss_fn(x_true, y_true, x_pred, y_pred)
 
-        losses.append(float(loss_batch))
+        yield loss_batch
 
+
+def evaluate(model, dataset, params):
+    loader = DataLoader(dataset=dataset, batch_size=params['batch_size'])
+    losses = []
+    for loss in forward_backward_gen(model, loader):
+        losses.append(float(loss))
     return np.mean(losses)
 
 
@@ -44,25 +46,14 @@ def train(model, train_dataset, valid_dataset, params):
     epochs = params['epochs']
     for epoch in range(epochs):
         losses = []
-        for i, (x, m, x_true, y_true) in enumerate(loader):
-            x = x.to(device)
-            # m = m.to(device)
-            x_true = x_true.to(device)
-            y_true = y_true.to(device)
-
-            x_pred, y_pred = model(x)
-
-            loss_batch = loss_fn(x_true, y_true, x_pred, y_pred)
-
-            losses.append(float(loss_batch))
-
+        for i, loss in enumerate(forward_backward_gen(model, loader)):
+            losses.append(float(loss))
             optimizer.zero_grad()
-            loss_batch.backward()
+            loss.backward()
             optimizer.step()
 
             if i % 50 == 0:
-                print('train epoch {}/{} batch {}/{} loss {}'.format(epoch + 1, epochs, i + 1, len(loader),
-                                                                     float(loss_batch)))
+                print('train epoch {}/{} batch {}/{} loss {}'.format(epoch + 1, epochs, i + 1, len(loader), float(loss)))
         loss_train = np.mean(losses)
         loss_valid = evaluate(model, valid_dataset, params)
         print('epoch {} finished with train loss {} and valid loss {}'.format(epoch + 1, loss_train, loss_valid))
