@@ -8,6 +8,8 @@ from torch.utils.data import DataLoader
 from data_load import get_mpii_datasets
 from model_vgg import NetVgg
 
+device = torch.device('cuda')
+
 
 def loss_fn(x_true, y_true, x_pred, y_pred):
     loss_x = torch.mean(torch.abs(x_true - x_pred))
@@ -15,7 +17,7 @@ def loss_fn(x_true, y_true, x_pred, y_pred):
     return loss_x + loss_y
 
 
-def evaluate(model, dataset, params, device):
+def evaluate(model, dataset, params):
     loader = DataLoader(dataset=dataset, batch_size=params['batch_size'])
 
     losses = []
@@ -34,7 +36,7 @@ def evaluate(model, dataset, params, device):
     return np.mean(losses)
 
 
-def train(model, train_dataset, valid_dataset, params, device):
+def train(model, train_dataset, valid_dataset, params):
     loader = DataLoader(dataset=train_dataset, batch_size=params['batch_size'])
 
     optimizer = SGD(model.parameters(), lr=params['learning_rate'], momentum=0.9)
@@ -62,7 +64,7 @@ def train(model, train_dataset, valid_dataset, params, device):
                 print('train epoch {}/{} batch {}/{} loss {}'.format(epoch + 1, epochs, i + 1, len(loader),
                                                                      float(loss_batch)))
         loss_train = np.mean(losses)
-        loss_valid = evaluate(model, valid_dataset, params, device)
+        loss_valid = evaluate(model, valid_dataset, params)
         print('epoch {} finished with train loss {} and valid loss {}'.format(epoch + 1, loss_train, loss_valid))
 
     return model
@@ -86,13 +88,11 @@ if __name__ == '__main__':
         'batch_size': 8
     }
 
-    device = torch.device('cuda')
-
     model = create_or_load_model().to(device)
 
-    model = train(model, train_dataset, valid_dataset, params=params, device=device)
+    model = train(model, train_dataset, valid_dataset, params=params)
 
-    test_loss = evaluate(model, test_dataset, params, device)
+    test_loss = evaluate(model, test_dataset, params)
 
     print('test loss', test_loss)
 
