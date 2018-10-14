@@ -5,16 +5,26 @@ from os.path import join, splitext
 
 from face_extractor import extract_face
 
+
+def listdir_ordered(dir):
+    filenames = listdir(dir)
+    filenames_split = [x.split('-') for x in filenames]
+    code, _ = zip(*filenames_split)
+    code = [int(x) for x in code]
+    filenames = zip(code, filenames)
+    filenames = sorted(filenames)
+    code, filenames = zip(*filenames)
+    return filenames
+
+
 if __name__ == '__main__':
     custom_dir = 'data/custom'
     custom_dir_prepared = custom_dir + '_prepared'
     regex = re.compile(pattern='([0-9]+)x([0-9]+)')
     with open(join(custom_dir_prepared, 'metadata.csv'), 'w') as f:
         f.write('imagename,x,y\n')
-        for image_filename in listdir(custom_dir):
-
+        for image_filename in listdir_ordered(custom_dir):
             print('starting {}'.format(image_filename))
-
             image_fullname = join(custom_dir, image_filename)
             imagename, _ = splitext(image_filename)
             code, resolution = imagename.split('-')
