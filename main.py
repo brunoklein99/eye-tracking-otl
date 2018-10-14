@@ -18,7 +18,7 @@ def loss_fn(x_true, y_true, x_pred, y_pred):
 
 
 def forward_backward_gen(model, loader):
-    for x, _, x_true, y_true in loader:
+    for x, x_true, y_true in loader:
         x = x.to(device)
         x_true = x_true.to(device)
         y_true = y_true.to(device)
