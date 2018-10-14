@@ -16,6 +16,13 @@ def load_mpii_dataframes():
     return df_train, df_valid, df_test
 
 
+def load_custom_dataframes():
+    df = pd.read_csv('data/custom_prepared/metadata.csv')
+    df_train = df[:400]
+    df_valid = df[400:]
+    return df_train, df_valid
+
+
 def decorate_dataset(dataset):
     dataset = ResizeDataset(dataset)
     dataset = MpiiNormalizingDataset(dataset,
@@ -35,3 +42,10 @@ def get_mpii_datasets():
     valid_dataset = decorate_dataset(MpiiDataset(df_valid))
     test_dataset = decorate_dataset(MpiiDataset(df_test))
     return train_dataset, valid_dataset, test_dataset
+
+
+def get_custom_datasets():
+    df_train, df_valid = load_custom_dataframes()
+    train_dataset = decorate_dataset(MpiiDataset(df_train))
+    valid_dataset = decorate_dataset(MpiiDataset(df_valid))
+    return train_dataset, valid_dataset

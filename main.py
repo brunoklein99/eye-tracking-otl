@@ -5,7 +5,7 @@ import torch
 from torch.optim import SGD
 from torch.utils.data import DataLoader
 
-from data_load import get_mpii_datasets
+from data_load import get_mpii_datasets, get_custom_datasets
 from model_vgg import NetVgg
 
 device = torch.device('cuda')
@@ -87,3 +87,15 @@ if __name__ == '__main__':
 
     with open('weights/weights-{:2f}'.format(test_loss), 'wb') as f:
         torch.save(model, f)
+
+    train_dataset, valid_dataset = get_custom_datasets()
+
+    valid_loss_custom = evaluate(model, valid_dataset, params)
+    print('valid loss custom', valid_loss_custom)
+
+    params['batch_size'] = 1
+    params['epochs'] = 1
+
+    parameters = list(model.parameters())[16:]
+
+    train(model, parameters, train_dataset, valid_dataset, params)
