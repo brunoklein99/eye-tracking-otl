@@ -22,6 +22,7 @@ if __name__ == '__main__':
     mpii_dir = 'data/mpii'
     mpii_dir_prepared = mpii_dir + '_prepared'
     mpii_metadata_fullname = join(mpii_dir_prepared, 'metadata.csv')
+    error_count = 0
     with open(mpii_metadata_fullname, 'w') as f:
         f.write('imagename,x,y\n')
         for participant_dir in listdir(mpii_dir):
@@ -65,7 +66,11 @@ if __name__ == '__main__':
                         cv2.imwrite(imagename_new, img)
 
                         f.write('{},{},{}\n'.format(imagename_new, target_x, target_y))
+                        f.flush()
                     except AssertionError as e:
                         print('assert error')
+                        error_count += 1
                     except Exception as e:
                         print(str(e))
+                        error_count += 1
+    print('error count', error_count)
