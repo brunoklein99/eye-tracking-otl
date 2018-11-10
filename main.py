@@ -39,23 +39,27 @@ def evaluate(model, dataset, params):
     return np.mean(losses)
 
 
-def train(model, parameters, train_dataset, valid_dataset, params):
+def train(model, parameters, train_dataset, valid_dataset, params, threshold_loss=None):
     loader = DataLoader(dataset=train_dataset, batch_size=params['batch_size'])
 
     optimizer = SGD(parameters, lr=params['learning_rate'], momentum=0.9)
 
     epochs = params['epochs']
+
     for epoch in range(epochs):
         losses = []
         for i, loss in enumerate(forward_backward_gen(model, loader)):
             losses.append(float(loss))
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+
+            if threshold_loss is None or loss > threshold_loss:
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
             if i % 50 == 0:
-                print(
-                    'train epoch {}/{} batch {}/{} loss {}'.format(epoch + 1, epochs, i + 1, len(loader), float(loss)))
+                print('train epoch {}/{} batch {}/{} loss {}'.format(
+                    epoch + 1, epochs, i + 1, len(loader), float(loss)
+                ))
         loss_train = np.mean(losses)
         loss_valid = evaluate(model, valid_dataset, params)
         print('epoch {} finished with train loss {} and valid loss {}'.format(epoch + 1, loss_train, loss_valid))
@@ -102,4 +106,4 @@ if __name__ == '__main__':
 
     parameters = list(model.parameters())[16:]
 
-    train(model, parameters, train_dataset, valid_dataset, params)
+    train(model, parameters, train_dataset, valid_dataset, params, threshold_loss=test_loss)
