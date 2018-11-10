@@ -65,9 +65,10 @@ def create_or_load_model():
     weights = listdir('weights')
     if len(weights) > 1:
         weights_filename, *_ = sorted(weights, reverse=True)
+        loss = float(weights_filename.split('-')[1])
         with open('weights/{}'.format(weights_filename), 'rb') as f:
-            return torch.load(f)
-    return NetVgg()
+            return torch.load(f), loss
+    return NetVgg(), None
 
 
 if __name__ == '__main__':
@@ -79,16 +80,17 @@ if __name__ == '__main__':
         'batch_size': 8
     }
 
-    model = create_or_load_model().to(device)
+    model, test_loss = create_or_load_model()
+    model = model.to(device)
+    if test_loss is None:
+        train(model, model.parameters(), train_dataset, valid_dataset, params=params)
 
-    train(model, model.parameters(), train_dataset, valid_dataset, params=params)
+        test_loss = evaluate(model, test_dataset, params)
 
-    test_loss = evaluate(model, test_dataset, params)
+        print('test loss', test_loss)
 
-    print('test loss', test_loss)
-
-    with open('weights/weights-{:2f}'.format(test_loss), 'wb') as f:
-        torch.save(model, f)
+        with open('weights/weights-{:2f}'.format(test_loss), 'wb') as f:
+            torch.save(model, f)
 
     train_dataset, valid_dataset = get_custom_datasets()
 
