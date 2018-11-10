@@ -8,7 +8,7 @@ class NetVgg(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.extractor = make_layers(cfg=cfg['A'])
+        self.extractor = make_layers(cfg=cfg['A'], batch_norm=True)
         self.regressor = nn.Sequential(
             nn.Linear(25088, 4096),
             nn.ReLU(True),

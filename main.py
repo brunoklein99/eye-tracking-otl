@@ -12,9 +12,10 @@ device = torch.device('cuda')
 
 
 def loss_fn(x_true, y_true, x_pred, y_pred):
-    loss_x = torch.mean(torch.abs(x_true - x_pred))
-    loss_y = torch.mean(torch.abs(y_true - y_pred))
-    return loss_x + loss_y
+    return torch.mean(torch.sqrt((x_true - x_pred) ** 2 + (y_true - y_pred) ** 2))
+    # loss_x = torch.mean(torch.abs(x_true - x_pred))
+    # loss_y = torch.mean(torch.abs(y_true - y_pred))
+    # return loss_x + loss_y
 
 
 def forward_backward_gen(model, loader):
@@ -53,7 +54,8 @@ def train(model, parameters, train_dataset, valid_dataset, params):
             optimizer.step()
 
             if i % 50 == 0:
-                print('train epoch {}/{} batch {}/{} loss {}'.format(epoch + 1, epochs, i + 1, len(loader), float(loss)))
+                print(
+                    'train epoch {}/{} batch {}/{} loss {}'.format(epoch + 1, epochs, i + 1, len(loader), float(loss)))
         loss_train = np.mean(losses)
         loss_valid = evaluate(model, valid_dataset, params)
         print('epoch {} finished with train loss {} and valid loss {}'.format(epoch + 1, loss_train, loss_valid))
