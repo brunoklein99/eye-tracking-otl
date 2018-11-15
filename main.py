@@ -1,5 +1,6 @@
 from os import listdir
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.optim import SGD
@@ -75,6 +76,22 @@ def create_or_load_model():
     return NetVgg(), None
 
 
+def fine_tune_stage(model, params, n, threshold_loss, split_index):
+    print('stage {}'.format(n))
+
+    params['batch_size'] = 1
+    params['epochs'] = 1
+
+    train_dataset, valid_dataset = get_custom_datasets(n, split_index)
+
+    valid_loss_custom = evaluate(model, valid_dataset, params)
+    print('valid loss custom', valid_loss_custom)
+
+    parameters = list(model.parameters())[16:]
+
+    train(model, parameters, train_dataset, valid_dataset, params, threshold_loss)
+
+
 if __name__ == '__main__':
     train_dataset, valid_dataset, test_dataset = get_mpii_datasets()
 
@@ -85,6 +102,9 @@ if __name__ == '__main__':
     }
 
     model, test_loss = create_or_load_model()
+
+    print(model)
+
     model = model.to(device)
     if test_loss is None:
         train(model, model.parameters(), train_dataset, valid_dataset, params=params)
@@ -96,14 +116,6 @@ if __name__ == '__main__':
         with open('weights/weights-{:2f}'.format(test_loss), 'wb') as f:
             torch.save(model, f)
 
-    train_dataset, valid_dataset = get_custom_datasets()
-
-    valid_loss_custom = evaluate(model, valid_dataset, params)
-    print('valid loss custom', valid_loss_custom)
-
-    params['batch_size'] = 1
-    params['epochs'] = 1
-
-    parameters = list(model.parameters())[16:]
-
-    train(model, parameters, train_dataset, valid_dataset, params, threshold_loss=test_loss)
+    fine_tune_stage(model, params, n=1, threshold_loss=test_loss, split_index=400)
+    fine_tune_stage(model, params, n=2, threshold_loss=test_loss, split_index=400)
+    fine_tune_stage(model, params, n=3, threshold_loss=test_loss, split_index=100)

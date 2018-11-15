@@ -16,10 +16,10 @@ def load_mpii_dataframes():
     return df_train, df_valid, df_test
 
 
-def load_custom_dataframes():
-    df = pd.read_csv('data/custom_prepared/metadata.csv')
-    df_train = df[:400]
-    df_valid = df[400:]
+def load_custom_dataframes(n, split_index):
+    df = pd.read_csv('data/custom{}_prepared/metadata.csv'.format(n))
+    df_train = df[:split_index]
+    df_valid = df[split_index:]
     return df_train, df_valid
 
 
@@ -44,8 +44,8 @@ def get_mpii_datasets():
     return train_dataset, valid_dataset, test_dataset
 
 
-def get_custom_datasets():
-    df_train, df_valid = load_custom_dataframes()
+def get_custom_datasets(n, split_index):
+    df_train, df_valid = load_custom_dataframes(n=n, split_index=split_index)
     train_dataset = decorate_dataset(MpiiDataset(df_train))
     valid_dataset = decorate_dataset(MpiiDataset(df_valid))
     return train_dataset, valid_dataset
