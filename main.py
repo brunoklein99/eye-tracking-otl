@@ -47,6 +47,8 @@ def train(model, parameters, train_dataset, valid_dataset, params, threshold_los
 
     epochs = params['epochs']
 
+    loss_train_all = []
+    loss_valid_all = []
     for epoch in range(epochs):
         losses = []
         for i, loss in enumerate(forward_backward_gen(model, loader)):
@@ -63,7 +65,10 @@ def train(model, parameters, train_dataset, valid_dataset, params, threshold_los
                 ))
         loss_train = np.mean(losses)
         loss_valid = evaluate(model, valid_dataset, params)
+        loss_train_all.append(loss_train)
+        loss_valid_all.append(loss_valid)
         print('epoch {} finished with train loss {} and valid loss {}'.format(epoch + 1, loss_train, loss_valid))
+    return loss_train_all, loss_valid_all
 
 
 def create_or_load_model():
@@ -107,7 +112,12 @@ if __name__ == '__main__':
 
     model = model.to(device)
     if test_loss is None:
-        train(model, model.parameters(), train_dataset, valid_dataset, params=params)
+        loss_train_all, loss_valid_all = train(model, model.parameters(), train_dataset, valid_dataset, params=params)
+
+        plt.plot(range(len(loss_train_all)), loss_train_all, label='train')
+        plt.plot(range(len(loss_valid_all)), loss_valid_all, label='valid')
+        plt.legend()
+        plt.show()
 
         test_loss = evaluate(model, test_dataset, params)
 
