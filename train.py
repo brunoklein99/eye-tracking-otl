@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 from os import listdir
 
 import matplotlib.pyplot as plt
@@ -17,15 +18,14 @@ screen_height = 1080
 
 def loss_fn(x_true, y_true, x_pred, y_pred):
     return torch.mean(torch.sqrt((x_true - x_pred) ** 2 + (y_true - y_pred) ** 2))
-    # loss_x = torch.mean(torch.abs(x_true - x_pred))
-    # loss_y = torch.mean(torch.abs(y_true - y_pred))
-    # return loss_x + loss_y
 
 
 def plot_and_save_debug_image(i, face_crop, x_true, y_true, x_pred, y_pred, loss):
     img = np.zeros(shape=(screen_height, screen_width, 3))
     face_crop *= 255
     face_crop = face_crop.astype(np.uint8)
+
+    # picture in picture bottom right margin 10
     img[815:1070, 1655:1910, :] = face_crop
     x_true = int(x_true * screen_width)
     x_pred = int(x_pred * screen_width)
@@ -48,15 +48,16 @@ def forward_backward_gen(model, loader):
 
         loss_batch = loss_fn(x_true, y_true, x_pred, y_pred)
 
-        plot_and_save_debug_image(
-            i,
-            x.cpu().data.numpy()[0],
-            float(x_true.cpu().data.numpy()),
-            float(y_true.cpu().data.numpy()),
-            float(x_pred.cpu().data.numpy()),
-            float(y_pred.cpu().data.numpy()),
-            float(loss_batch.cpu().data.numpy())
-        )
+        if args.video:
+            plot_and_save_debug_image(
+                i,
+                np.squeeze(x.cpu().data.numpy()),
+                float(x_true.cpu().data.numpy()),
+                float(y_true.cpu().data.numpy()),
+                float(x_pred.cpu().data.numpy()),
+                float(y_pred.cpu().data.numpy()),
+                float(loss_batch.cpu().data.numpy())
+            )
 
         yield loss_batch
 
@@ -127,6 +128,11 @@ def fine_tune_stage(model, params, n, threshold_loss, split_index):
 
 
 if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument('-v', '--video', help='generate video frames', action='store_true')
+
+    args = parser.parse_args()
+
     train_dataset, valid_dataset, test_dataset = get_mpii_datasets()
 
     params = {
