@@ -1,4 +1,6 @@
 import re
+from argparse import ArgumentParser
+
 import cv2
 from os import listdir
 from os.path import join, splitext
@@ -18,7 +20,12 @@ def listdir_ordered(dir):
 
 
 if __name__ == '__main__':
-    custom_dir = 'data/custom'
+
+    parser = ArgumentParser()
+    parser.add_argument('-n', type=int, dest='index', help='index of environment dataset')
+    args = parser.parse_args()
+
+    custom_dir = 'data/custom{}'.format(args.index)
     custom_dir_prepared = custom_dir + '_prepared'
     regex = re.compile(pattern='([0-9]+)x([0-9]+)')
     with open(join(custom_dir_prepared, 'metadata.csv'), 'w') as f:
