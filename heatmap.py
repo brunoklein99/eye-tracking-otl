@@ -1,16 +1,17 @@
+from argparse import ArgumentParser
+
 import numpy as np
 import numpy.random
 import matplotlib.pyplot as plt
 import pandas as pd
 
-# Generate some test data
-# x = np.random.randn(8873)
-# y = np.random.randn(8873)
-
 
 if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument('-n', type=int, dest='index', help='index of environment dataset')
+    args = parser.parse_args()
 
-    df = pd.read_csv('data/custom_prepared/metadata.csv')
+    df = pd.read_csv('data/custom{}_prepared/metadata.csv'.format(args.index))
     x = df['x'].values
     y = df['y'].values
 
