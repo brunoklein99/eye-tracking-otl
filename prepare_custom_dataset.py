@@ -27,7 +27,6 @@ if __name__ == '__main__':
 
     custom_dir = 'data/custom{}'.format(args.index)
     custom_dir_prepared = custom_dir + '_prepared'
-    regex = re.compile(pattern='([0-9]+)x([0-9]+)')
     with open(join(custom_dir_prepared, 'metadata.csv'), 'w') as f:
         f.write('imagename,x,y\n')
         for image_filename in listdir_ordered(custom_dir):

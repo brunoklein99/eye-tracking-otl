@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from os import listdir
 
+import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -70,7 +71,7 @@ def evaluate(model, dataset, params):
     return np.mean(losses)
 
 
-def train(model, parameters, train_dataset, valid_dataset, params, threshold_loss=None):
+def train(model, parameters, train_dataset, valid_dataset, params, threshold_loss=None, backprop=True):
     loader = DataLoader(dataset=train_dataset, batch_size=params['batch_size'])
 
     optimizer = SGD(parameters, lr=params['learning_rate'], momentum=0.9)
@@ -79,26 +80,29 @@ def train(model, parameters, train_dataset, valid_dataset, params, threshold_los
 
     loss_train_all = []
     loss_valid_all = []
+    losses_batch = []
     for epoch in range(epochs):
-        losses = []
+        losses_epoch = []
         for i, loss in enumerate(forward_backward_gen(model, loader)):
-            losses.append(float(loss))
+            losses_epoch.append(float(loss))
+            losses_batch.append(float(loss))
 
             if threshold_loss is None or loss > threshold_loss:
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                if backprop:
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
 
             if i % 50 == 0:
                 print('train epoch {}/{} batch {}/{} loss {}'.format(
                     epoch + 1, epochs, i + 1, len(loader), float(loss)
                 ))
-        loss_train = np.mean(losses)
+        loss_train = np.mean(losses_epoch)
         loss_valid = evaluate(model, valid_dataset, params)
         loss_train_all.append(loss_train)
         loss_valid_all.append(loss_valid)
         print('epoch {} finished with train loss {} and valid loss {}'.format(epoch + 1, loss_train, loss_valid))
-    return loss_train_all, loss_valid_all
+    return losses_batch, loss_train_all, loss_valid_all
 
 
 def create_or_load_model():
@@ -111,7 +115,7 @@ def create_or_load_model():
     return NetVgg(), None
 
 
-def fine_tune_stage(model, params, n, threshold_loss, split_index):
+def fine_tune_stage(model, params, n, threshold_loss, split_index, backprop=True):
     print('stage {}'.format(n))
 
     params['batch_size'] = 1
@@ -124,7 +128,13 @@ def fine_tune_stage(model, params, n, threshold_loss, split_index):
 
     parameters = list(model.parameters())[16:]
 
-    train(model, parameters, train_dataset, valid_dataset, params, threshold_loss)
+    losses_batch, loss_train_all, loss_valid_all = train(model, parameters, train_dataset, valid_dataset, params, threshold_loss, backprop)
+
+    print('stage {} loss_train_all: {}'.format(n, loss_train_all))
+    print('stage {} loss_valid_all: {}'.format(n, loss_valid_all))
+    print('stage {} losses_batch: {}'.format(n, losses_batch))
+
+    return losses_batch
 
 
 if __name__ == '__main__':
@@ -147,12 +157,15 @@ if __name__ == '__main__':
 
     model = model.to(device)
     if test_loss is None:
-        loss_train_all, loss_valid_all = train(model, model.parameters(), train_dataset, valid_dataset, params=params)
+        losses_batch, loss_train_all, loss_valid_all = train(model, model.parameters(), train_dataset, valid_dataset, params=params)
 
-        plt.plot(range(len(loss_train_all)), loss_train_all, label='train')
-        plt.plot(range(len(loss_valid_all)), loss_valid_all, label='valid')
-        plt.legend()
-        plt.show()
+        print('loss_train_all: {}'.format(loss_train_all))
+        print('loss_valid_all: {}'.format(loss_valid_all))
+        print('losses_batch: {}', losses_batch)
+        # plt.plot(range(len(loss_train_all)), loss_train_all, label='train')
+        # plt.plot(range(len(loss_valid_all)), loss_valid_all, label='valid')
+        # plt.legend()
+        # plt.show()
 
         test_loss = evaluate(model, test_dataset, params)
 
@@ -161,6 +174,18 @@ if __name__ == '__main__':
         with open('weights/weights-{:2f}'.format(test_loss), 'wb') as f:
             torch.save(model, f)
 
-    fine_tune_stage(model, params, n=1, threshold_loss=test_loss, split_index=400)
-    fine_tune_stage(model, params, n=2, threshold_loss=test_loss, split_index=400)
-    fine_tune_stage(model, params, n=3, threshold_loss=test_loss, split_index=100)
+        params['learning_rate'] /= 8
+
+        stage1_online = fine_tune_stage(model, params, n=1, threshold_loss=test_loss, split_index=400)
+        stage2_online = fine_tune_stage(model, params, n=2, threshold_loss=test_loss, split_index=400)
+        stage1_offline = fine_tune_stage(model, params, n=1, threshold_loss=test_loss, split_index=400)
+        stage2_offline = fine_tune_stage(model, params, n=2, threshold_loss=test_loss, split_index=400)
+
+        from charts import plot_smooth
+        with open('data-charts/losses_batch', 'wb') as f:
+            pickle.dump(losses_batch, f)
+        with open('data-charts/stage1', 'wb') as f:
+            pickle.dump(stage1_online, f)
+        with open('data-charts/stage2', 'wb') as f:
+            pickle.dump(stage2_online, f)
+        plot_smooth(losses_batch, stage1_online, stage2_online)
