@@ -115,13 +115,9 @@ def create_or_load_model():
     return NetVgg(), None
 
 
-def fine_tune_stage(model, params, n, threshold_loss, split_index, backprop=True):
-    print('stage {}'.format(n))
-
+def fine_tune_stage(model, train_dataset, valid_dataset, params, threshold_loss, backprop=True):
     params['batch_size'] = 1
     params['epochs'] = 1
-
-    train_dataset, valid_dataset = get_custom_datasets(n, split_index)
 
     valid_loss_custom = evaluate(model, valid_dataset, params)
     print('valid loss custom', valid_loss_custom)
@@ -129,10 +125,6 @@ def fine_tune_stage(model, params, n, threshold_loss, split_index, backprop=True
     parameters = list(model.parameters())[16:]
 
     losses_batch, loss_train_all, loss_valid_all = train(model, parameters, train_dataset, valid_dataset, params, threshold_loss, backprop)
-
-    print('stage {} loss_train_all: {}'.format(n, loss_train_all))
-    print('stage {} loss_valid_all: {}'.format(n, loss_valid_all))
-    print('stage {} losses_batch: {}'.format(n, losses_batch))
 
     return losses_batch
 
@@ -176,16 +168,28 @@ if __name__ == '__main__':
 
         params['learning_rate'] /= 8
 
-        stage1_online = fine_tune_stage(model, params, n=1, threshold_loss=test_loss, split_index=400)
-        stage2_online = fine_tune_stage(model, params, n=2, threshold_loss=test_loss, split_index=400)
-        stage1_offline = fine_tune_stage(model, params, n=1, threshold_loss=test_loss, split_index=400)
-        stage2_offline = fine_tune_stage(model, params, n=2, threshold_loss=test_loss, split_index=400)
+        stage1_train_dataset, stage_1_valid_dataset = get_custom_datasets(1, split_index=400, shuffle=True)
+        stage2_train_dataset, stage_2_valid_dataset = get_custom_datasets(2, split_index=400, shuffle=True)
+
+        print('stage1_offline')
+        stage1_offline = fine_tune_stage(model, stage1_train_dataset, stage_1_valid_dataset, params, threshold_loss=test_loss, backprop=False)
+        print('stage2_offline')
+        stage2_offline = fine_tune_stage(model, stage2_train_dataset, stage_2_valid_dataset, params, threshold_loss=test_loss, backprop=False)
+
+        print('stage1_online')
+        stage1_online = fine_tune_stage(model, stage1_train_dataset, stage_1_valid_dataset, params, threshold_loss=test_loss)
+        print('stage2_online')
+        stage2_online = fine_tune_stage(model, stage2_train_dataset, stage_2_valid_dataset, params, threshold_loss=test_loss)
 
         from charts import plot_smooth
         with open('data-charts/losses_batch', 'wb') as f:
             pickle.dump(losses_batch, f)
-        with open('data-charts/stage1', 'wb') as f:
+        with open('data-charts/stage1_online', 'wb') as f:
             pickle.dump(stage1_online, f)
-        with open('data-charts/stage2', 'wb') as f:
+        with open('data-charts/stage2_online', 'wb') as f:
             pickle.dump(stage2_online, f)
-        plot_smooth(losses_batch, stage1_online, stage2_online)
+        with open('data-charts/stage1_offline', 'wb') as f:
+            pickle.dump(stage1_offline, f)
+        with open('data-charts/stage2_offline', 'wb') as f:
+            pickle.dump(stage2_offline, f)
+        # plot_smooth(losses_batch, stage1_online, stage2_online)
